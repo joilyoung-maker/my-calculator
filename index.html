@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      overflow: hidden;
+    }
+
+    /* Animated background blobs */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      animation: floatBlob 8s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .blob-1 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #7c3aed, #4f46e5);
+      top: -100px; left: -100px;
+      animation-delay: 0s;
+    }
+    .blob-2 {
+      width: 350px; height: 350px;
+      background: radial-gradient(circle, #ec4899, #8b5cf6);
+      bottom: -80px; right: -80px;
+      animation-delay: 3s;
+    }
+    .blob-3 {
+      width: 250px; height: 250px;
+      background: radial-gradient(circle, #06b6d4, #3b82f6);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      animation-delay: 1.5s;
+    }
+
+    @keyframes floatBlob {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-30px) scale(1.05); }
+    }
+
+    /* Calculator container */
+    .calculator {
+      position: relative;
+      z-index: 10;
+      width: 340px;
+      background: rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 28px;
+      padding: 24px;
+      box-shadow:
+        0 32px 80px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      animation: slideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(40px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Display */
+    .display {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 20px 22px 16px;
+      margin-bottom: 20px;
+      text-align: right;
+      min-height: 110px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .expression {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.45);
+      font-weight: 400;
+      min-height: 18px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .result {
+      font-size: 46px;
+      font-weight: 600;
+      color: #ffffff;
+      letter-spacing: -1px;
+      line-height: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .result.pop {
+      transform: scale(1.04);
+    }
+
+    /* Button grid */
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      height: 66px;
+      border: none;
+      border-radius: 16px;
+      font-family: 'Inter', sans-serif;
+      font-size: 18px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    button::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0);
+      transition: background 0.15s;
+      border-radius: inherit;
+    }
+    button:hover::after { background: rgba(255,255,255,0.08); }
+    button:active { transform: scale(0.93); }
+
+    /* Number buttons */
+    .btn-num {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .btn-num:hover { background: rgba(255,255,255,0.16); }
+
+    /* Zero button spans 2 columns */
+    .btn-zero {
+      grid-column: span 2;
+      border-radius: 20px;
+    }
+
+    /* Operator buttons */
+    .btn-op {
+      background: rgba(139, 92, 246, 0.35);
+      color: #c4b5fd;
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+    }
+    .btn-op:hover { background: rgba(139, 92, 246, 0.5); }
+
+    /* Equals button */
+    .btn-eq {
+      background: linear-gradient(145deg, #7c3aed, #4f46e5);
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+      font-size: 22px;
+    }
+    .btn-eq:hover {
+      background: linear-gradient(145deg, #8b5cf6, #6366f1);
+      box-shadow: 0 8px 28px rgba(124, 58, 237, 0.65);
+    }
+
+    /* Clear / special */
+    .btn-clear {
+      background: rgba(239, 68, 68, 0.22);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+    }
+    .btn-clear:hover { background: rgba(239, 68, 68, 0.35); }
+
+    .btn-func {
+      background: rgba(255, 255, 255, 0.07);
+      color: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 16px;
+    }
+    .btn-func:hover { background: rgba(255,255,255,0.14); }
+
+    /* Ripple effect */
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      width: 60px; height: 60px;
+      background: rgba(255,255,255,0.25);
+      transform: scale(0);
+      animation: ripple-anim 0.5s linear;
+      pointer-events: none;
+    }
+    @keyframes ripple-anim {
+      to { transform: scale(4); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <div class="calculator" id="calculator">
+    <div class="display">
+      <div class="expression" id="expression"></div>
+      <div class="result" id="result">0</div>
+    </div>
+
+    <div class="buttons">
+      <!-- Row 1 -->
+      <button class="btn-clear" id="btn-ac"   onclick="pressAC()">AC</button>
+      <button class="btn-func" id="btn-pm"    onclick="pressToggleSign()">+/−</button>
+      <button class="btn-func" id="btn-pct"   onclick="pressPercent()">%</button>
+      <button class="btn-op"   id="btn-div"   onclick="pressOp('÷')">÷</button>
+
+      <!-- Row 2 -->
+      <button class="btn-num"  id="btn-7"     onclick="pressDigit('7')">7</button>
+      <button class="btn-num"  id="btn-8"     onclick="pressDigit('8')">8</button>
+      <button class="btn-num"  id="btn-9"     onclick="pressDigit('9')">9</button>
+      <button class="btn-op"   id="btn-mul"   onclick="pressOp('×')">×</button>
+
+      <!-- Row 3 -->
+      <button class="btn-num"  id="btn-4"     onclick="pressDigit('4')">4</button>
+      <button class="btn-num"  id="btn-5"     onclick="pressDigit('5')">5</button>
+      <button class="btn-num"  id="btn-6"     onclick="pressDigit('6')">6</button>
+      <button class="btn-op"   id="btn-sub"   onclick="pressOp('−')">−</button>
+
+      <!-- Row 4 -->
+      <button class="btn-num"  id="btn-1"     onclick="pressDigit('1')">1</button>
+      <button class="btn-num"  id="btn-2"     onclick="pressDigit('2')">2</button>
+      <button class="btn-num"  id="btn-3"     onclick="pressDigit('3')">3</button>
+      <button class="btn-op"   id="btn-add"   onclick="pressOp('+')">+</button>
+
+      <!-- Row 5 -->
+      <button class="btn-num btn-zero" id="btn-0" onclick="pressDigit('0')">0</button>
+      <button class="btn-num"  id="btn-dot"   onclick="pressDot()">.</button>
+      <button class="btn-eq"   id="btn-eq"    onclick="pressEquals()">=</button>
+    </div>
+  </div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────────────────────
+    let currentInput  = '0';
+    let previousInput = '';
+    let operator      = null;
+    let justEvaled    = false;
+
+    const resultEl    = document.getElementById('result');
+    const expressionEl = document.getElementById('expression');
+
+    // ── Display ─────────────────────────────────────────────────────────────
+    function updateDisplay(value) {
+      resultEl.classList.remove('pop');
+      void resultEl.offsetWidth; // reflow
+      resultEl.classList.add('pop');
+      resultEl.textContent = formatNumber(value);
+    }
+
+    function formatNumber(val) {
+      if (val === 'Error') return 'Error';
+      const num = parseFloat(val);
+      if (isNaN(num)) return val;
+      // Limit display to 10 significant digits
+      const str = parseFloat(num.toPrecision(10)).toString();
+      return str;
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+    function toReal(op) {
+      return op === '÷' ? '/' : op === '×' ? '*' : op === '−' ? '-' : '+';
+    }
+
+    function calculate(a, op, b) {
+      const x = parseFloat(a), y = parseFloat(b);
+      switch (op) {
+        case '÷': return y === 0 ? 'Error' : x / y;
+        case '×': return x * y;
+        case '−': return x - y;
+        case '+': return x + y;
+        default:  return b;
+      }
+    }
+
+    // ── Button handlers ──────────────────────────────────────────────────────
+    function pressDigit(d) {
+      if (justEvaled) {
+        currentInput = d;
+        expressionEl.textContent = '';
+        justEvaled = false;
+      } else if (currentInput === '0' && d !== '0') {
+        currentInput = d;
+      } else if (currentInput.length < 12) {
+        currentInput = currentInput === '0' ? d : currentInput + d;
+      }
+      updateDisplay(currentInput);
+    }
+
+    function pressDot() {
+      if (justEvaled) { currentInput = '0.'; justEvaled = false; }
+      if (!currentInput.includes('.')) currentInput += '.';
+      updateDisplay(currentInput);
+    }
+
+    function pressOp(op) {
+      if (operator && !justEvaled && previousInput !== '') {
+        const res = calculate(previousInput, operator, currentInput);
+        if (res === 'Error') { resetAll(); updateDisplay('Error'); return; }
+        previousInput = String(res);
+        updateDisplay(previousInput);
+        expressionEl.textContent = formatNumber(previousInput) + ' ' + op;
+      } else {
+        previousInput = justEvaled ? currentInput : currentInput;
+        expressionEl.textContent = formatNumber(previousInput) + ' ' + op;
+      }
+      operator = op;
+      currentInput = '0';
+      justEvaled = false;
+    }
+
+    function pressEquals() {
+      if (!operator || previousInput === '') return;
+      const expr = formatNumber(previousInput) + ' ' + operator + ' ' + formatNumber(currentInput);
+      const res = calculate(previousInput, operator, currentInput);
+      if (res === 'Error') { resetAll(); updateDisplay('Error'); return; }
+      expressionEl.textContent = expr + ' =';
+      currentInput = String(parseFloat(res.toPrecision(10)));
+      operator = null;
+      previousInput = '';
+      justEvaled = true;
+      updateDisplay(currentInput);
+    }
+
+    function pressAC() {
+      resetAll();
+      updateDisplay('0');
+    }
+
+    function pressToggleSign() {
+      if (currentInput !== '0') {
+        currentInput = currentInput.startsWith('-')
+          ? currentInput.slice(1)
+          : '-' + currentInput;
+        updateDisplay(currentInput);
+      }
+    }
+
+    function pressPercent() {
+      const val = parseFloat(currentInput) / 100;
+      currentInput = String(val);
+      updateDisplay(currentInput);
+    }
+
+    function resetAll() {
+      currentInput  = '0';
+      previousInput = '';
+      operator      = null;
+      justEvaled    = false;
+      expressionEl.textContent = '';
+    }
+
+    // ── Keyboard support ────────────────────────────────────────────────────
+    document.addEventListener('keydown', e => {
+      if (e.key >= '0' && e.key <= '9') pressDigit(e.key);
+      else if (e.key === '.')  pressDot();
+      else if (e.key === '+')  pressOp('+');
+      else if (e.key === '-')  pressOp('−');
+      else if (e.key === '*')  pressOp('×');
+      else if (e.key === '/')  { e.preventDefault(); pressOp('÷'); }
+      else if (e.key === 'Enter' || e.key === '=') pressEquals();
+      else if (e.key === 'Escape' || e.key === 'Delete') pressAC();
+      else if (e.key === 'Backspace') {
+        if (currentInput.length > 1) currentInput = currentInput.slice(0, -1);
+        else currentInput = '0';
+        updateDisplay(currentInput);
+      }
+      else if (e.key === '%') pressPercent();
+    });
+
+    // ── Ripple effect ────────────────────────────────────────────────────────
+    document.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        const ripple = document.createElement('span');
+        ripple.className = 'ripple';
+        const rect = this.getBoundingClientRect();
+        ripple.style.left = (e.clientX - rect.left - 30) + 'px';
+        ripple.style.top  = (e.clientY - rect.top - 30) + 'px';
+        this.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 500);
+      });
+    });
+  </script>
+</body>
+</html>
